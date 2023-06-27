@@ -1,0 +1,273 @@
+# Typical laptop setup, with wifi, brightness, battery etc, for
+# i3/Sway.
+
+# For X11/i3, you'll want to replace calls to swaymsg with i3-msg, and
+# the sway-xkb module with the xkb module.
+
+# fonts we'll be re-using here and there
+awesome: &awesome Font Awesome 5 Free:style=solid:pixelsize=14
+awesome_brands: &awesome_brands Font Awesome 5 Brands:pixelsize=16
+
+# Drcula color scheme
+background: &background 282a36ff
+foreground: &foreground f8f8f2ff
+black: &black 21222cff
+red: &red ff5555ff
+green: &green 50fa7bff
+yellow: &yellow f1fa8cff
+blue: &blue bd93f9ff
+magenta: &magenta ff79c6ff
+cyan: &cyan 8be9fdff
+white: &white f8f8f2ff
+bright_black: &bright_black 6272a4ff
+bright_red: &bright_red ff6e6eff
+bright_green: &bright_green 69ff94ff
+bright_yellow: &bright_yellow ffffa5ff
+bright_blue: &bright_blue d6acffff
+bright_magenta: &bright_magenta ff92dfff
+bright_cyan: &bright_cyan a4ffffff
+bright_white: &bright_white ffffffff
+
+std_underline: &std_underline {underline: { size: 2, color: *magenta}}
+
+# This is THE bar configuration
+bar:
+  height: 30
+  location: top
+  spacing: 5
+  margin: 7
+
+  # Default font
+  font: Monospace:pixelsize=18:style=bold
+
+  foreground: *foreground
+  background: *background
+
+  border:
+    width: 2
+    color: *blue
+    margin: 0
+    top-margin: 0
+
+  left:
+    - label:
+        content:
+          string:
+            on-click: fuzzel
+            text: 
+            foreground: 1491CEff
+            font: Monospace:pixelsize=20
+
+    - i3:
+        anchors: # Not used (directly) by f00bar; used here to avoid duplication
+          - string: &i3_common {left-margin: 3, right-margin: 13, on-click: "swaymsg --quiet workspace {name}"}
+          - string: &default {<<: *i3_common, text: "{name}"}
+          - string: &surfing {<<: *i3_common, text: , font: *awesome_brands}
+          - focused: &focused
+              deco: {stack: [background: {color: *blue}, <<: *std_underline]}
+          - invisible: &invisible {foreground: *bright_black}
+          - urgent: &urgent
+              foreground: *black
+              deco: {stack: [background: {color: *red}, <<: *std_underline]}
+          - map: &i3_mode
+              default:
+                - string:
+                    margin: 5
+                    text: "{mode}"
+                    deco: {background: {color: *bright_red}}
+                - empty: {right-margin: 7}
+              conditions:
+                mode == default: {empty: {}}
+        sort: ascending
+        content:
+          "":
+            map:
+              left-margin: 3
+              conditions:
+                state == focused:   {string: {<<: [*default, *focused]}}
+                state == unfocused: {string: {<<: *default}}
+                state == invisible: {string: {<<: [*default, *invisible]}}
+                state == urgent:    {string: {<<: [*default, *urgent]}}
+          surfing:
+            map:
+              conditions:
+                state == focused: {string: {<<: [*surfing, *focused]}}
+                state == unfocused: {string: {<<: *surfing}}
+                state == invisible: {string: {<<: [*surfing, *invisible]}}
+                state == urgent:    {string: {<<: [*surfing, *urgent]}}
+          current:
+            map: {left-margin: 20, <<: *i3_mode}
+
+    - foreign-toplevel:
+        content:
+          map:
+            conditions:
+              ~activated: {empty: {}}
+              activated:
+                - string: {text: "{app-id}", max: 10, foreground: *magenta}
+                - string: {text: ": {title}", max: 35}
+
+  center:
+    - clock:
+        time-format: "%H:%M"
+        date-format: "%d %b %Y"
+        content:
+          - string: {text: , font: *awesome, foreground: *green}
+          - string: {text: "{date}", right-margin: 5, foreground: *green, on-click: "setbg"}
+          - string: {text: , font: *awesome}
+          - string: {text: "{time}"}
+
+    - script:
+        path: /home/mzeinali/.config/yambar/khorshidi_date
+        content:
+          - string: {text: , font: *awesome, foreground: *yellow}
+          - string: {text: "{khorshidi_date}", foreground: *yellow}
+
+  right:
+    - removables:
+        anchors:
+          drive: &drive { text: , font: *awesome}
+          optical: &optical {text: , font: *awesome}
+        spacing: 5
+        content:
+          map:
+            conditions:
+              ~mounted:
+                map:
+                  on-click: menumount
+                  conditions:
+                    ~optical: [{string: *drive}, {string: {text: "{label}"}}]
+                    optical: [{string: *optical}, {string: {text: "{label}"}}]
+              mounted:
+                map:
+                  on-click: menuumount
+                  conditions:
+                    ~optical:
+                      - string: {<<: *drive, deco: *std_underline}
+                      - string: {text: "{label}"}
+                    optical:
+                      - string: {<<: *optical, deco: *std_underline}
+                      - string: {text: "{label}"}
+    - network:
+        name: enp0s31f6
+        content:
+          map:
+            conditions:
+              ~carrier: {empty: {}}
+              carrier:
+                map:
+                  default: {string: {text: , font: *awesome, foreground: *white}}
+                  conditions:
+                    state == up:
+                      map:
+                        default: {string: {text: , font: *awesome}}
+                        conditions:
+                          ipv4 == "": {string: {text: , font: *awesome, foreground: *white}}
+    - network:
+        name: wlp2s0
+        content:
+          map:
+            default: {string: {text: , font: *awesome, foreground: *bright_white}}
+            conditions:
+              state == down: {string: {text: , font: *awesome, foreground: *red}}
+              state == up:
+                map:
+                  default:
+                    - string: {text: , font: *awesome, foreground: *bright_green}
+                    - string: {text: "{ssid}", foreground: *bright_green}
+                  conditions:
+                    ipv4 == "":
+                      - string: {text: , font: *awesome, foreground: *bright_green}
+                      - string: {text: "{ssid}", foreground: *bright_green}
+    - alsa:
+        card: hw:PCH
+        mixer: Master
+        content:
+          map:
+            conditions:
+              ~online: {string: {text: , font: *awesome, foreground: *red}}
+              online:
+                map:
+                  on-click: /bin/sh -c "wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle"
+                  conditions:
+                    muted: {string: {text: , font: *awesome, foreground: *bright_white}}
+                    ~muted:
+                      list:
+                        items:
+                          - ramp:
+                              tag: percent
+                              items:
+                                - string: {text: , font: *awesome, foreground: *cyan}
+                                - string: {text: , font: *awesome, foreground: *cyan}
+                                - string: {text: , font: *awesome, foreground: *cyan}
+                                - string: {text: , font: *awesome, foreground: *cyan}
+                                - string: {text: , font: *awesome, foreground: *cyan} 
+                          - string: {text: "{percent}%", foreground: *cyan}
+
+    - backlight:
+        name: intel_backlight
+        content: [ string: {text: , font: *awesome, foreground: *bright_yellow}, string: {text: "{percent}%", foreground: *bright_yellow}]
+    - battery:
+        name: BAT0
+        poll-interval: 1000
+        anchors:
+          discharging: &discharging
+            list:
+              items:
+                - ramp:
+                    tag: capacity
+                    items:
+                      - string: {text: , foreground: *red, font: *awesome}
+                      - string: {text: , foreground: *yellow, font: *awesome}
+                      - string: {text: , font: *awesome}
+                      - string: {text: , font: *awesome}
+                      - string: {text: , font: *awesome}
+                      - string: {text: , font: *awesome}
+                      - string: {text: , font: *awesome}
+                      - string: {text: , font: *awesome}
+                      - string: {text: , font: *awesome}
+                      - string: {text: , foreground: *green, font: *awesome}
+                - string: {text: "{capacity}% {estimate}"}
+        content:
+          map:
+            conditions:
+              state == unknown:
+                <<: *discharging
+              state == discharging:
+                <<: *discharging
+              state == charging:
+                - string: {text: , foreground: *green, font: *awesome}
+                - string: {text: "{capacity}% {estimate}", foreground: *green}
+              state == full:
+                - string: {text: , foreground: *green, font: *awesome}
+                - string: {text: "{capacity}% full", foreground: *green}
+              state == "not charging":
+                - ramp:
+                    tag: capacity
+                    items:
+                      - string: {text:  , foreground: *red, font: *awesome}
+                      - string: {text:  , foreground: *yellow, font: *awesome}
+                      - string: {text:  , foreground: *green, font: *awesome}
+                      - string: {text:  , foreground: *green, font: *awesome}
+                      - string: {text:  , foreground: *green, font: *awesome}
+                      - string: {text:  , foreground: *green, font: *awesome}
+                      - string: {text:  , foreground: *green, font: *awesome}
+                      - string: {text:  , foreground: *green, font: *awesome}
+                      - string: {text:  , foreground: *green, font: *awesome}
+                      - string: {text:  , foreground: *green, font: *awesome}
+                - string: {text: "{capacity}%", foreground: *green}
+
+    - sway-xkb:
+        identifiers: [1:1:AT_Translated_Set_2_keyboard]
+        content:
+          - string: {text: , font: *awesome, foreground: *bright_magenta}
+          - string: {text: "{layout}", foreground: *bright_magenta}
+
+    - label:
+        content:
+          string:
+            on-click: sysact
+            text: 
+            font: *awesome
+            foreground: *red
+
